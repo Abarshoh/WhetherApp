@@ -9,7 +9,7 @@ import okhttp3.internal.concurrent.Task
 import org.json.JSONArray
 import org.json.JSONObject
 
-class TodayAdapter(private val hours: JSONArray): RecyclerView.Adapter<TodayAdapter.MyHolder>() {
+class TodayAdapter(var hours: JSONArray,var from : Int): RecyclerView.Adapter<TodayAdapter.MyHolder>() {
     class MyHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
         val hour : TextView = itemView.findViewById(R.id.today_hour)
         val temp : TextView = itemView.findViewById(R.id.today_temp)

@@ -1,11 +1,13 @@
 package com.example.weatherapp
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
 import com.android.volley.toolbox.JsonObjectRequest
@@ -13,25 +15,31 @@ import com.android.volley.toolbox.Volley
 import com.example.weatherapp.databinding.FragmentHomeBinding
 import okhttp3.internal.concurrent.Task
 import org.json.JSONArray
+import org.json.JSONObject
+import java.time.LocalTime
 
 class HomeFragment : Fragment() {
     private val apiUrl = "https://api.weatherapi.com/v1/forecast.json?key=11b9394e7e024a2588a44954230610&q=Tashkent&days=8&aqi=no&alerts=no"
     private lateinit var binding: FragmentHomeBinding
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-
+    var forecastAdapter = ForecastAdapter(JSONArray(), object : ForecastAdapter.ItemClickInterface{
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onParentClick(day: JSONObject, position: Int) {
+            changeToday(day, position)
         }
-    }
+    })
+    var todayAdapter = TodayAdapter(JSONArray(), 0)
+    @RequiresApi(Build.VERSION_CODES.O)
+    var fromHour = LocalTime.now().hour
 
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         val requestQue = Volley.newRequestQueue(requireContext())
-        var forecastAdapter = ForecastAdapter(JSONArray())
+
         binding.forecastRv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         binding.todayRv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
@@ -45,9 +53,16 @@ class HomeFragment : Fragment() {
 
                 binding.temp.text = "${tempC}°"
 
-                forecastAdapter = ForecastAdapter(response.getJSONObject("forecast").getJSONArray("forecastday"))
+                forecastAdapter = ForecastAdapter(response.getJSONObject("forecast").getJSONArray("forecastday"), object : ForecastAdapter.ItemClickInterface{
+                    @RequiresApi(Build.VERSION_CODES.O)
+                    override fun onParentClick(day: JSONObject, position: Int) {
+                        changeToday(day, position)
+                    }
+                })
+
                 binding.forecastRv.adapter = forecastAdapter
-                binding.todayRv.adapter = TodayAdapter(response.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(0).getJSONArray("hour"))
+                todayAdapter = TodayAdapter(response.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(0).getJSONArray("hour"), fromHour)
+                binding.todayRv.adapter = todayAdapter
 
                 binding.icon.load("https:" + current.getJSONObject("condition").getString("icon"))
                 forecastAdapter.notifyDataSetChanged()
@@ -60,6 +75,20 @@ class HomeFragment : Fragment() {
 
 
         return binding.root
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun changeToday(day: JSONObject, position:Int){
+        if (position == 0){
+            binding.todayAdapterText.text = "Today"
+            fromHour = LocalTime.now().hour
+        }else{
+            binding.todayAdapterText.text = day.getString("date")
+            fromHour = 0
+        }
+        todayAdapter.hours = day.getJSONArray("hour")
+        todayAdapter.from = fromHour
+        todayAdapter.notifyDataSetChanged()
     }
 
     companion object {
